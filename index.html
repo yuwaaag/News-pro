@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>Advance News Studio - MultiScene</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background-color: #000; font-family: 'Arial', sans-serif; }
+        
+        /* न्यूज़ स्टेज ट्रांजिशन */
+        #news-stage { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 91%; 
+            border: none; z-index: 1; transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* SOLO Mode: इसमें वीडियो फुल स्क्रीन हो जाएगा */
+        .mode-solo #news-stage { height: 100% !important; transform: scale(1.05); }
+        .mode-solo .name-tag:not(#name1), .mode-solo .ticker-container { display: none !important; }
+
+        /* डिजाइन एलिमेंट्स */
+        #header-overlay { position: absolute; top: 20px; right: 20px; z-index: 150; text-align: right; }
+        .logo-img { width: 140px; border: 2px solid #FFD700; box-shadow: 0 0 15px rgba(255,0,0,0.6); }
+        #live-clock { background: rgba(0,0,0,0.8); color: #FFD700; padding: 4px 10px; font-size: 16px; font-weight: bold; margin-top: 5px; }
+
+        .name-tag { position: absolute; background: linear-gradient(to right, #cc0000, #ff0000); color: white; padding: 6px 20px; font-size: 20px; font-weight: bold; border-left: 6px solid #FFD700; z-index: 110; display: none; }
+        #name1 { top: 15%; left: 3%; } #name2 { top: 15%; right: 3%; }
+        #name3 { bottom: 25%; left: 3%; } #name4 { bottom: 25%; right: 3%; }
+
+        .ticker-container { position: absolute; bottom: 0; width: 100%; height: 65px; background: #990000; display: flex; align-items: center; border-top: 4px solid #FFD700; z-index: 100; }
+        .ticker-label { background: #FFD700; color: #000; padding: 0 20px; font-weight: 900; font-size: 24px; height: 100%; display: flex; align-items: center; }
+        .ticker-text { white-space: nowrap; overflow: hidden; flex-grow: 1; color: #fff; font-size: 28px; font-weight: bold; }
+        .ticker-text p { display: inline-block; padding-left: 100%; animation: scroll-text 15s linear infinite; margin: 0; }
+        @keyframes scroll-text { 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+        #click-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; display: flex; justify-content: center; align-items: center; color: #FFD700; font-size: 22px; cursor: pointer; }
+    </style>
+</head>
+<body class="mode-grid">
+
+    <div id="click-overlay" onclick="this.style.display='none'">
+        <div>🎬 OPEN ADVANCE STUDIO <br><small style="color:white;">(Scene Control Active)</small></div>
+    </div>
+
+    <div id="header-overlay">
+        <img src="https://raw.githubusercontent.com/yuwaaag/logo/main/ptnlogo.png" class="logo-img">
+        <div id="live-clock">00:00:00</div>
+    </div>
+
+    <iframe id="news-stage" 
+        src="https://vdo.ninja/?room=AdvanceNews&scene=1&transparent=1&autoplay=1&grid=10&roomaspect=1.77&cover=1&cleanoutput=1" 
+        allow="camera;microphone;autoplay">
+    </iframe>
+
+    <div id="name1" class="name-tag"></div>
+    <div id="name2" class="name-tag"></div>
+    <div id="name3" class="name-tag"></div>
+    <div id="name4" class="name-tag"></div>
+
+    <div class="ticker-container">
+        <div class="ticker-label">LIVE</div>
+        <div class="ticker-text"><p id="ticker-content">Loading Advance Scene Control...</p></div>
+    </div>
+
+    <script>
+        // अपनी नई Google Sheet का CSV लिंक यहाँ डालें
+        const sheetURL = 'यहाँ_अपना_नया_CSV_लिंक_पेस्ट_करें';
+        let lastData = ""; 
+
+        function updateClock() { document.getElementById('live-clock').innerText = new Date().toLocaleTimeString('en-GB'); }
+        setInterval(updateClock, 1000);
+
+        async function updateStudio() {
+            try {
+                const response = await fetch(`${sheetURL}&cb=${new Date().getTime()}`);
+                const data = await response.text();
+                if (data === lastData) return;
+                lastData = data;
+
+                const rows = data.split('\n');
+                const columns = rows[0].split(',');
+
+                // 1. सीन मोड कंट्रोल (Column F)
+                const mode = columns[5] ? columns[5].replace(/"/g, "").trim().toUpperCase() : "GRID";
+                document.body.className = (mode === "SOLO") ? "mode-solo" : "mode-grid";
+
+                // 2. न्यूज़ पट्टी (Column A)
+                document.getElementById('ticker-content').innerText = columns[0].replace(/"/g, "").trim();
+
+                // 3. नाम (Column B-E)
+                for (let i = 1; i <= 4; i++) {
+                    let nameElem = document.getElementById('name' + i);
+                    let val = columns[i] ? columns[i].replace(/"/g, "").trim() : "";
+                    if (val === "" || val === "0") { nameElem.style.display = 'none'; }
+                    else { nameElem.style.display = 'block'; nameElem.innerText = val; }
+                }
+            } catch (e) { console.log("Syncing..."); }
+        }
+
+        setInterval(updateStudio, 4000);
+        updateStudio();
+    </script>
+</body>
+</html>
